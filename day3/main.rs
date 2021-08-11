@@ -1,18 +1,10 @@
-use gtk::{
-   HeaderBar,
-   Stack,
-   StackSwitcher,
-   prelude::*
-};
+use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
 fn main() {
-    let application = gtk::Application::new(
-        Some("come.test.add"), 
-        Default::default()
-    );
+    let application = gtk::Application::new(Some("come.test.add"), Default::default());
     application.connect_activate(build_ui);
     application.run();
 }
-fn build_ui(application: &gtk::Application){
+fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
     //window.set_title("test");
     window.set_default_size(350, 70);
@@ -21,7 +13,7 @@ fn build_ui(application: &gtk::Application){
     title.set_show_close_button(true);
     window.set_titlebar(Some(&title));
     //vbox.pack_start(&title, false, false, 0);
-    
+
     let stack = Stack::new();
     stack.set_transition_type(gtk::StackTransitionType::SlideLeftRight);
     stack.set_transition_duration(1000);
