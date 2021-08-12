@@ -1,5 +1,6 @@
-use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
 use gdtk::add_corner;
+use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
+mod page1;
 fn main() {
     let application = gtk::Application::new(Some("come.test.add"), Default::default());
     application.connect_activate(build_ui);
@@ -19,7 +20,7 @@ fn build_ui(application: &gtk::Application) {
     );
     let window = gtk::ApplicationWindow::new(application);
     // 绘制圆角
-    add_corner(&window,0.02);
+    add_corner(&window, 0.02);
     //window.set_title("test");
     window.set_default_size(350, 70);
     //let vbox = gtk::Box::new(gtk::Orientation::Vertical,10);
@@ -31,8 +32,8 @@ fn build_ui(application: &gtk::Application) {
     let stack = Stack::new();
     stack.set_transition_type(gtk::StackTransitionType::SlideLeftRight);
     stack.set_transition_duration(1000);
-    let lable = gtk::Label::new(Some("MM"));
-    stack.add_titled(&lable, "lable", "label");
+    let page1 = page1::mainpage();
+    stack.add_titled(&page1, "lable", "label");
     let lable2 = gtk::Label::new(Some("BB"));
     stack.add_titled(&lable2, "lable2", "label2");
 
