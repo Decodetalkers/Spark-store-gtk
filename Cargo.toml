@@ -9,6 +9,7 @@ edition = "2018"
 gtk = "0.14.0"
 glib = "0.14.2"
 gio = "0.14.0"
+gdk = "0.14.0"
 
 [[bin]]
 name = "day1"
@@ -21,3 +22,7 @@ path = "day2/main.rs"
 [[bin]]
 name = "day3"
 path = "day3/main.rs"
+
+[[bin]]
+name = "day4"
+path = "day4/main.rs"
