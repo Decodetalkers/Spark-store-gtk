@@ -1,5 +1,5 @@
 use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
-use gtkheader::add_corner;
+use gdtk::add_corner;
 fn main() {
     let application = gtk::Application::new(Some("come.test.add"), Default::default());
     application.connect_activate(build_ui);
