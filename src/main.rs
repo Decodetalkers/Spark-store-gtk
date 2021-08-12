@@ -19,7 +19,7 @@ fn build_ui(application: &gtk::Application) {
     );
     let window = gtk::ApplicationWindow::new(application);
     // 绘制圆角
-    add_corner(&window);
+    add_corner(&window,0.02);
     //window.set_title("test");
     window.set_default_size(350, 70);
     //let vbox = gtk::Box::new(gtk::Orientation::Vertical,10);
