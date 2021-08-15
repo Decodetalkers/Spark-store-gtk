@@ -1,4 +1,5 @@
 use gtk::{Label, Notebook, prelude::{FlowBoxExt, NotebookExt, NotebookExtManual, ScrolledWindowExt, WidgetExt,ContainerExt}};
+use futures::executor::block_on;
 pub fn mainpage() -> Notebook {
     let notebook = Notebook::new();
     notebook.set_tab_pos(gtk::PositionType::Left);
@@ -16,6 +17,9 @@ pub fn mainpage() -> Notebook {
         "系统管理",
         "其他",
     ];
+    let future = fetch_path("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
+    let test: String = block_on(future).unwrap();
+    println!("{}",test);
     for name in names.into_iter() {
         create_tab(&notebook, name);
     }
@@ -49,4 +53,27 @@ fn create_tab(notebook: &Notebook, title: &str) {
         flowbox.add(&label);
     }
     notebook.append_page(&scrolled, Some(&lable));
+}
+async fn fetch_path(path: String) -> surf::Result<String> {
+    let mut back_string = String::new();
+    let url = surf::http::Url::parse(&path);
+    match url {
+        Ok(_) => {
+            match surf::get(&path).await {
+                Ok(mut response) => {
+                    match response.body_string().await {
+                        Ok(text) => back_string = text,
+                        Err(_) => {
+                            println!("Read response text Error!")
+                        }
+                    };
+                }
+                Err(_) => {
+                    println!("reqwest get Error!")
+                }
+            }
+            Ok(back_string)
+        }
+        Err(_) => Ok(String::new()),
+    }
 }
