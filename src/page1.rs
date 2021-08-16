@@ -1,4 +1,4 @@
-use gtk::{Label, Notebook, prelude::{FlowBoxExt, NotebookExt, NotebookExtManual, ScrolledWindowExt, WidgetExt,ContainerExt}};
+use gtk::{Label, Notebook, prelude::*};
 use futures::executor::block_on;
 pub fn mainpage() -> Notebook {
     let notebook = Notebook::new();
@@ -48,9 +48,28 @@ fn create_tab(notebook: &Notebook, title: &str) {
         "系统管理",
         "其他",
     ];
+
+    let future = fetch_path("https://examine-spark.oss-cn-shanghai.aliyuncs.com/icons/2020/11/19/7f3f6130-2a5c-11eb-848c-e55ce84765f9.svg".to_string());
+    let image = block_on(future).unwrap();
+    //let stream = gtk::gio::MemoryInputStream::from_bytes(&gtk::glib::Bytes::from(image.as_bytes()));
+    let loader = gtk::gdk_pixbuf::PixbufLoader::new();
+    loader.write(image.as_bytes()).unwrap();
+    loader.close().unwrap();
+    let pixbuf = loader.pixbuf().unwrap();
+    //let icon = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
     for name in names.into_iter() {
+        let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
+        let button = gtk::Button::new();
+        //let image  =gtk::gio::Icon::for_string("edit-find-symbolic").unwrap();
+        let image2 = gtk::Image::from_gicon(&pixbuf.clone(), gtk::IconSize::Button);
+
+        //let image2 = gtk::Image::from_gicon(&image, gtk::IconSize::Button);
+        
+        button.add(&image2);
         let label = Label::new(Some(name));
-        flowbox.add(&label);
+        boxs.pack_start(&button, true, true, 0);
+        boxs.pack_start(&label, true, true, 0);
+        flowbox.add(&boxs);
     }
     notebook.append_page(&scrolled, Some(&lable));
 }
