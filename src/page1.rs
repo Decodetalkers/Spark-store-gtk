@@ -17,9 +17,9 @@ pub fn mainpage() -> Notebook {
         "系统管理",
         "其他",
     ];
-    let future = fetch_path("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
-    let test: String = block_on(future).unwrap();
-    println!("{}",test);
+    //let future = fetch_path("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
+    //let test: String = block_on(future).unwrap();
+    //println!("{}",test);
     for name in names.into_iter() {
         create_tab(&notebook, name);
     }
@@ -49,13 +49,18 @@ fn create_tab(notebook: &Notebook, title: &str) {
         "其他",
     ];
 
-    let future = fetch_path("https://examine-spark.oss-cn-shanghai.aliyuncs.com/icons/2020/11/19/7f3f6130-2a5c-11eb-848c-e55ce84765f9.svg".to_string());
-    let image = block_on(future).unwrap();
+    //let future = fetch_path("https://examine-spark.oss-cn-shanghai.aliyuncs.com/images/2021/01/24/4822c780-5dfd-11eb-a7e8-39f472e1f1d8.png".to_string());
+    //let image = block_on(future).unwrap();
     //let stream = gtk::gio::MemoryInputStream::from_bytes(&gtk::glib::Bytes::from(image.as_bytes()));
-    let loader = gtk::gdk_pixbuf::PixbufLoader::new();
-    loader.write(image.as_bytes()).unwrap();
-    loader.close().unwrap();
-    let pixbuf = loader.pixbuf().unwrap();
+    //let pixbuf = gtk::gdk_pixbuf::Pixbuf::from_stream::<gtk::gio::MemoryInputStream,gtk::gio::Cancellable>(&stream,None).unwrap();
+    let future = get_pixbuf("https://examine-spark.oss-cn-shanghai.aliyuncs.com/icons/2021/01/24/4529abc0-5dfd-11eb-a7e8-39f472e1f1d8.png");
+    let pixbuf = block_on(future);
+
+
+    //let loader = gtk::gdk_pixbuf::PixbufLoader::new();
+    //loader.write(image.as_bytes()).unwrap();
+    //loader.close().unwrap();
+    //let pixbuf = loader.pixbuf().unwrap();
     //let icon = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
     for name in names.into_iter() {
         let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
@@ -73,15 +78,22 @@ fn create_tab(notebook: &Notebook, title: &str) {
     }
     notebook.append_page(&scrolled, Some(&lable));
 }
-async fn fetch_path(path: String) -> surf::Result<String> {
-    let mut back_string = String::new();
+async fn get_pixbuf(path:&str) -> gtk::gdk_pixbuf::Pixbuf {
+    let bytes = fetch_path(path.to_string()).await.unwrap();
+    let bytes = glib::Bytes::from(&bytes.to_vec());
+    let stream = gtk::gio::MemoryInputStream::from_bytes(&bytes);
+    gtk::gdk_pixbuf::Pixbuf::from_stream::<gtk::gio::MemoryInputStream,gtk::gio::Cancellable>(&stream,None).unwrap()
+
+}
+async fn fetch_path(path: String) -> surf::Result<Vec<u8>> {
+    let mut back_string = vec![];
     let url = surf::http::Url::parse(&path);
     match url {
         Ok(_) => {
             match surf::get(&path).await {
                 Ok(mut response) => {
-                    match response.body_string().await {
-                        Ok(text) => back_string = text,
+                    match response.body_bytes().await {
+                        Ok(text) => back_string = text.to_vec(),
                         Err(_) => {
                             println!("Read response text Error!")
                         }
@@ -93,6 +105,6 @@ async fn fetch_path(path: String) -> surf::Result<String> {
             }
             Ok(back_string)
         }
-        Err(_) => Ok(String::new()),
+        Err(_) => Ok(vec![]),
     }
 }
