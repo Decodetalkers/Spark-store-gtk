@@ -17,6 +17,9 @@ surf = "2.2.0"
 futures = "0.3"
 gdtk = {path = "./gdtk"}
 
+[build-dependencies]
+gio = "0.14.0"
+
 [[bin]]
 name = "day1"
 path = "day1/main.rs"

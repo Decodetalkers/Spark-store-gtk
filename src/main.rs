@@ -2,6 +2,7 @@ use gdtk::add_corner;
 use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
 mod page1;
 fn main() {
+    gio::resources_register_include!("compiled.gresource").unwrap();
     let application = gtk::Application::new(Some("come.test.add"), Default::default());
     application.connect_activate(build_ui);
     application.run();
