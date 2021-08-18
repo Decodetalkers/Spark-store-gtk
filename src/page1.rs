@@ -21,7 +21,7 @@ pub fn mainpage() -> Notebook {
         "系统管理",
         "其他",
     ];
-    let urls :Vec<&str> = vec![
+    let urls: Vec<&str> = vec![
         "https://d.store.deepinos.org.cn//store/network/applist.json",
         "https://d.store.deepinos.org.cn//store/chat/applist.json",
         "https://d.store.deepinos.org.cn//store/music/applist.json",
@@ -32,12 +32,12 @@ pub fn mainpage() -> Notebook {
         "https://d.store.deepinos.org.cn//store/reading/applist.json",
         "https://d.store.deepinos.org.cn//store/development/applist.json",
         "https://d.store.deepinos.org.cn//store/tools/applist.json",
-        "https://d.store.deepinos.org.cn//store/others/applist.json"
+        "https://d.store.deepinos.org.cn//store/others/applist.json",
     ];
     //let future = fetch_path("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
     //let test: String = block_on(future).unwrap();
     //println!("{}",test);
-    for (name,url) in names.into_iter().zip(urls) {
+    for (name, url) in names.into_iter().zip(urls) {
         create_tab(&notebook, name, url.to_string());
     }
     notebook
@@ -81,7 +81,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
             let input = remove_quotation(source[index]["icons"].to_string());
             let future = fetch_path(&input);
             let path = block_on(future).unwrap();
-            tx.send((source[index].clone(),path)).expect("error");
+            tx.send((source[index].clone(), path)).expect("error");
             //thread::sleep(std::time::Duration::from_secs(1));
             index += 1;
         }
@@ -93,7 +93,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     //let pixbuf = loader.pixbuf().unwrap();
     //let icon = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
     rx.attach(None, move |source| {
-        let (value, path)=source;
+        let (value, path) = source;
         let image = {
             if value["icons"] != Value::Null {
                 //let input = remove_quotation(value["icons"].to_string());
@@ -138,7 +138,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     //}
     notebook.append_page(&scrolled, Some(&lable));
 }
-fn get_pixbuf(bytes : Vec<u8>) -> gtk::gdk_pixbuf::Pixbuf {
+fn get_pixbuf(bytes: Vec<u8>) -> gtk::gdk_pixbuf::Pixbuf {
     //let bytes = fetch_path(path).await.unwrap();
     let bytes = glib::Bytes::from(&bytes.to_vec());
     let stream = gtk::gio::MemoryInputStream::from_bytes(&bytes);
