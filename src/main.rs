@@ -23,7 +23,7 @@ fn build_ui(application: &gtk::Application) {
     // 绘制圆角
     add_corner(&window, 0.02);
     //window.set_title("test");
-    window.set_default_size(350, 70);
+    window.set_default_size(650, 200);
     //let vbox = gtk::Box::new(gtk::Orientation::Vertical,10);
     let title = HeaderBar::new();
     title.set_show_close_button(true);

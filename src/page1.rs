@@ -1,7 +1,9 @@
-use gtk::{Label, Notebook, prelude::*};
 use futures::executor::block_on;
-use gtk::Image;
+use gtk::{prelude::*, Label, Notebook};
+//use gtk::Image;
 use serde_json::Value;
+use std::thread;
+
 pub fn mainpage() -> Notebook {
     let notebook = Notebook::new();
     notebook.set_tab_pos(gtk::PositionType::Left);
@@ -19,15 +21,28 @@ pub fn mainpage() -> Notebook {
         "系统管理",
         "其他",
     ];
+    let urls :Vec<&str> = vec![
+        "https://d.store.deepinos.org.cn//store/network/applist.json",
+        "https://d.store.deepinos.org.cn//store/chat/applist.json",
+        "https://d.store.deepinos.org.cn//store/music/applist.json",
+        "https://d.store.deepinos.org.cn//store/video/applist.json",
+        "https://d.store.deepinos.org.cn//store/image_graphics/applist.json",
+        "https://d.store.deepinos.org.cn//store/games/applist.json",
+        "https://d.store.deepinos.org.cn//store/office/applist.json",
+        "https://d.store.deepinos.org.cn//store/reading/applist.json",
+        "https://d.store.deepinos.org.cn//store/development/applist.json",
+        "https://d.store.deepinos.org.cn//store/tools/applist.json",
+        "https://d.store.deepinos.org.cn//store/others/applist.json"
+    ];
     //let future = fetch_path("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
     //let test: String = block_on(future).unwrap();
     //println!("{}",test);
-    for name in names.into_iter() {
-        create_tab(&notebook, name);
+    for (name,url) in names.into_iter().zip(urls) {
+        create_tab(&notebook, name, url.to_string());
     }
     notebook
 }
-fn create_tab(notebook: &Notebook, title: &str) {
+fn create_tab(notebook: &Notebook, title: &str, url: String) {
     let lable = Label::new(Some(title));
     //let lable2 = Label::new(Some(title));
     let flowbox = gtk::FlowBox::new();
@@ -37,65 +52,102 @@ fn create_tab(notebook: &Notebook, title: &str) {
     let scrolled = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
     scrolled.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
     scrolled.add(&flowbox);
-    let mut names: Vec<Image> = vec![];
-    let future = fetch_message("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
-    let input2 = block_on(future).unwrap();
-    let source: Value = match serde_json::from_str(&input2){
-        Err(_)=> Value::Null,
-        Ok(output) => output,
-    };
-    let mut index = 0;
-    while source[index] !=Value::Null {
-        if source[index]["icons"]!=Value::Null{
-            let input = remove_quotation(source[index]["icons"].to_string());
-            let future = get_pixbuf(&input);
-            let pixbuf = block_on(future);
-            let pixbuf = pixbuf.scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper).unwrap();
-            let image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
-            names.push(image);
-        }else {
-            //let image  =gtk::gio::Icon::for_string("edit-find-symbolic").unwrap();
+    let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+    thread::spawn(move || {
+        //先加载
+        thread::sleep(std::time::Duration::from_secs(3));
+        let future =
+            //fetch_message("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
+            fetch_message(url);
+        let input2 = block_on(future).unwrap();
+        let source: Value = match serde_json::from_str(&input2) {
+            Err(_) => Value::Null,
+            Ok(output) => output,
+        };
+        let mut index = 0;
+        while source[index] != Value::Null {
+            //let mut image = gtk::Image::new();
+            //if source[index]["icons"]!=Value::Null{
+            //    let input = remove_quotation(source[index]["icons"].to_string());
+            //    let future = get_pixbuf(&input);
+            //    let pixbuf = block_on(future);
+            //    let pixbuf = pixbuf.scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper).unwrap();
+            //    image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
+            //}else {
+            //    //let image  =gtk::gio::Icon::for_string("edit-find-symbolic").unwrap();
 
-            let image = gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
-            let image = image.scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper).unwrap();
-            let image = gtk::Image::from_gicon(&image, gtk::IconSize::Button);
-
-            names.push(image);
+            //    let pixbuf = gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
+            //    let pixbuf = pixbuf.scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper).unwrap();
+            //    image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
+            //}
+            tx.send(source[index].clone()).expect("error");
+            //thread::sleep(std::time::Duration::from_secs(1));
+            index += 1;
         }
-        index+=1;
-    }
-
-
+    });
 
     //let loader = gtk::gdk_pixbuf::PixbufLoader::new();
     //loader.write(image.as_bytes()).unwrap();
     //loader.close().unwrap();
     //let pixbuf = loader.pixbuf().unwrap();
     //let icon = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
-    for name in names.into_iter() {
+    rx.attach(None, move |value| {
+        let image = {
+            if value["icons"] != Value::Null {
+                let input = remove_quotation(value["icons"].to_string());
+                let future = get_pixbuf(&input);
+                let pixbuf = block_on(future);
+                let pixbuf = pixbuf
+                    .scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper)
+                    .unwrap();
+                gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
+            } else {
+                //let image  =gtk::gio::Icon::for_string("edit-find-symbolic").unwrap();
+
+                let pixbuf = gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
+                let pixbuf = pixbuf
+                    .scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper)
+                    .unwrap();
+                gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
+            }
+        };
         let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
         let button = gtk::Button::new();
-        
-        button.add(&name);
-        let label = Label::new(Some("sss"));
+
+        button.add(&image);
+        let label = Label::new(Some(&remove_quotation(value["Name"].to_string())));
         boxs.pack_start(&button, true, true, 0);
         boxs.pack_start(&label, true, true, 0);
         flowbox.add(&boxs);
-    }
+        flowbox.show_all();
+
+        glib::Continue(true)
+    });
+    //for name in names.into_iter() {
+    //    let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
+    //    let button = gtk::Button::new();
+    //
+    //    button.add(&name);
+    //    let label = Label::new(Some("sss"));
+    //    boxs.pack_start(&button, true, true, 0);
+    //    boxs.pack_start(&label, true, true, 0);
+    //    flowbox.add(&boxs);
+    //}
     notebook.append_page(&scrolled, Some(&lable));
 }
-async fn get_pixbuf(path:&str) -> gtk::gdk_pixbuf::Pixbuf {
+async fn get_pixbuf(path: &str) -> gtk::gdk_pixbuf::Pixbuf {
     let bytes = fetch_path(path).await.unwrap();
     let bytes = glib::Bytes::from(&bytes.to_vec());
     let stream = gtk::gio::MemoryInputStream::from_bytes(&bytes);
-    let output:gtk::gdk_pixbuf::Pixbuf =match gtk::gdk_pixbuf::Pixbuf::from_stream::<gtk::gio::MemoryInputStream,gtk::gio::Cancellable>(&stream,None){
-        Err(_)=>{
-            gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap()
-        },
-        Ok(output)=> output,
+    let output: gtk::gdk_pixbuf::Pixbuf = match gtk::gdk_pixbuf::Pixbuf::from_stream::<
+        gtk::gio::MemoryInputStream,
+        gtk::gio::Cancellable,
+    >(&stream, None)
+    {
+        Err(_) => gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap(),
+        Ok(output) => output,
     };
     output
-
 }
 async fn fetch_path(path: &str) -> surf::Result<Vec<u8>> {
     let mut back_string = vec![];
