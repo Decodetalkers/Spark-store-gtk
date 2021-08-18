@@ -54,8 +54,6 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     scrolled.add(&flowbox);
     let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     thread::spawn(move || {
-        //先加载
-        thread::sleep(std::time::Duration::from_secs(3));
         let future =
             //fetch_message("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
             fetch_message(url);
@@ -80,7 +78,10 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
             //    let pixbuf = pixbuf.scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper).unwrap();
             //    image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
             //}
-            tx.send(source[index].clone()).expect("error");
+            let input = remove_quotation(source[index]["icons"].to_string());
+            let future = fetch_path(&input);
+            let path = block_on(future).unwrap();
+            tx.send((source[index].clone(),path)).expect("error");
             //thread::sleep(std::time::Duration::from_secs(1));
             index += 1;
         }
@@ -91,14 +92,14 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     //loader.close().unwrap();
     //let pixbuf = loader.pixbuf().unwrap();
     //let icon = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
-    rx.attach(None, move |value| {
+    rx.attach(None, move |source| {
+        let (value, path)=source;
         let image = {
             if value["icons"] != Value::Null {
-                let input = remove_quotation(value["icons"].to_string());
-                let future = get_pixbuf(&input);
-                let pixbuf = block_on(future);
+                //let input = remove_quotation(value["icons"].to_string());
+                let pixbuf = get_pixbuf(path);
                 let pixbuf = pixbuf
-                    .scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper)
+                    .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
                     .unwrap();
                 gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
             } else {
@@ -106,7 +107,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
 
                 let pixbuf = gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
                 let pixbuf = pixbuf
-                    .scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper)
+                    .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
                     .unwrap();
                 gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
             }
@@ -116,6 +117,8 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
 
         button.add(&image);
         let label = Label::new(Some(&remove_quotation(value["Name"].to_string())));
+        label.set_max_width_chars(15);
+        label.set_line_wrap(true);
         boxs.pack_start(&button, true, true, 0);
         boxs.pack_start(&label, true, true, 0);
         flowbox.add(&boxs);
@@ -135,8 +138,8 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     //}
     notebook.append_page(&scrolled, Some(&lable));
 }
-async fn get_pixbuf(path: &str) -> gtk::gdk_pixbuf::Pixbuf {
-    let bytes = fetch_path(path).await.unwrap();
+fn get_pixbuf(bytes : Vec<u8>) -> gtk::gdk_pixbuf::Pixbuf {
+    //let bytes = fetch_path(path).await.unwrap();
     let bytes = glib::Bytes::from(&bytes.to_vec());
     let stream = gtk::gio::MemoryInputStream::from_bytes(&bytes);
     let output: gtk::gdk_pixbuf::Pixbuf = match gtk::gdk_pixbuf::Pixbuf::from_stream::<

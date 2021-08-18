@@ -1,4 +1,4 @@
-use gdtk::add_corner;
+//use gdtk::add_corner;
 use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
 mod page1;
 fn main() {
@@ -21,7 +21,7 @@ fn build_ui(application: &gtk::Application) {
     );
     let window = gtk::ApplicationWindow::new(application);
     // 绘制圆角
-    add_corner(&window, 0.02);
+    //add_corner(&window, 0.02);
     //window.set_title("test");
     window.set_default_size(650, 200);
     //let vbox = gtk::Box::new(gtk::Orientation::Vertical,10);
