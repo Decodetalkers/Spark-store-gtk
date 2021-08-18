@@ -1,5 +1,6 @@
 use gtk::{Label, Notebook, prelude::*};
 use futures::executor::block_on;
+use serde_json::Value;
 pub fn mainpage() -> Notebook {
     let notebook = Notebook::new();
     notebook.set_tab_pos(gtk::PositionType::Left);
@@ -79,15 +80,15 @@ fn create_tab(notebook: &Notebook, title: &str) {
     notebook.append_page(&scrolled, Some(&lable));
 }
 async fn get_pixbuf(path:&str) -> gtk::gdk_pixbuf::Pixbuf {
-    let bytes = fetch_path(path.to_string()).await.unwrap();
+    let bytes = fetch_path(path).await.unwrap();
     let bytes = glib::Bytes::from(&bytes.to_vec());
     let stream = gtk::gio::MemoryInputStream::from_bytes(&bytes);
     gtk::gdk_pixbuf::Pixbuf::from_stream::<gtk::gio::MemoryInputStream,gtk::gio::Cancellable>(&stream,None).unwrap()
 
 }
-async fn fetch_path(path: String) -> surf::Result<Vec<u8>> {
+async fn fetch_path(path: &str) -> surf::Result<Vec<u8>> {
     let mut back_string = vec![];
-    let url = surf::http::Url::parse(&path);
+    let url = surf::http::Url::parse(path);
     match url {
         Ok(_) => {
             match surf::get(&path).await {
@@ -106,5 +107,28 @@ async fn fetch_path(path: String) -> surf::Result<Vec<u8>> {
             Ok(back_string)
         }
         Err(_) => Ok(vec![]),
+    }
+}
+async fn fetch_message(path: String) -> surf::Result<String> {
+    let mut back_string = String::new();
+    let url = surf::http::Url::parse(&path);
+    match url {
+        Ok(_) => {
+            match surf::get(&path).await {
+                Ok(mut response) => {
+                    match response.body_string().await {
+                        Ok(text) => back_string = text,
+                        Err(_) => {
+                            println!("Read response text Error!")
+                        }
+                    };
+                }
+                Err(_) => {
+                    println!("reqwest get Error!")
+                }
+            }
+            Ok(back_string)
+        }
+        Err(_) => Ok(String::new()),
     }
 }
