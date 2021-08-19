@@ -20,6 +20,9 @@ fn build_ui(application: &gtk::Application) {
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
     let window = gtk::ApplicationWindow::new(application);
+    if let Ok(icon) = &gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg") {
+        window.set_icon(Some(icon));
+    }
     // 绘制圆角
     //add_corner(&window, 0.02);
     //window.set_title("test");
