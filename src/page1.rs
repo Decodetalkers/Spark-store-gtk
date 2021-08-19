@@ -65,13 +65,18 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
             //let mut image = gtk::Image::new();
 
             let input = remove_quotation(source[index]["Pkgname"].to_string());
-            let input = &(url.clone()+&input+"/icon.png");
-            let future = fetch_path(input);
-            let path = block_on(future).unwrap();
-            tx.send((source[index].clone(), path)).expect("error");
-            //thread::sleep(std::time::Duration::from_secs(1));
+            let input = url.clone()+&input+"/icon.png";
+            let tx0 = tx.clone();
+            let source0 = source[index].clone();
+            thread::spawn(move || {
+                let future = fetch_path(&input);
+                let path = block_on(future).unwrap();
+                tx0.send((source0, path)).expect("error");
+                drop(tx0);
+            });
             index += 1;
         }
+        drop(tx);
     });
 
     rx.attach(None, move |source| {
