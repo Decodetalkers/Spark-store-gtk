@@ -22,17 +22,17 @@ pub fn mainpage() -> Notebook {
         "其他",
     ];
     let urls: Vec<&str> = vec![
-        "https://d.store.deepinos.org.cn//store/network/applist.json",
-        "https://d.store.deepinos.org.cn//store/chat/applist.json",
-        "https://d.store.deepinos.org.cn//store/music/applist.json",
-        "https://d.store.deepinos.org.cn//store/video/applist.json",
-        "https://d.store.deepinos.org.cn//store/image_graphics/applist.json",
-        "https://d.store.deepinos.org.cn//store/games/applist.json",
-        "https://d.store.deepinos.org.cn//store/office/applist.json",
-        "https://d.store.deepinos.org.cn//store/reading/applist.json",
-        "https://d.store.deepinos.org.cn//store/development/applist.json",
-        "https://d.store.deepinos.org.cn//store/tools/applist.json",
-        "https://d.store.deepinos.org.cn//store/others/applist.json",
+        "https://d.store.deepinos.org.cn//store/network/",
+        "https://d.store.deepinos.org.cn//store/chat/",
+        "https://d.store.deepinos.org.cn//store/music/",
+        "https://d.store.deepinos.org.cn//store/video/",
+        "https://d.store.deepinos.org.cn//store/image_graphics/",
+        "https://d.store.deepinos.org.cn//store/games/",
+        "https://d.store.deepinos.org.cn//store/office/",
+        "https://d.store.deepinos.org.cn//store/reading/",
+        "https://d.store.deepinos.org.cn//store/development/",
+        "https://d.store.deepinos.org.cn//store/tools/",
+        "https://d.store.deepinos.org.cn//store/others/",
     ];
     //let future = fetch_path("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
     //let test: String = block_on(future).unwrap();
@@ -44,7 +44,6 @@ pub fn mainpage() -> Notebook {
 }
 fn create_tab(notebook: &Notebook, title: &str, url: String) {
     let lable = Label::new(Some(title));
-    //let lable2 = Label::new(Some(title));
     let flowbox = gtk::FlowBox::new();
     flowbox.set_valign(gtk::Align::Start);
     flowbox.set_max_children_per_line(30);
@@ -55,8 +54,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     thread::spawn(move || {
         let future =
-            //fetch_message("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
-            fetch_message(url);
+            fetch_message(url.clone()+"applist.json");
         let input2 = block_on(future).unwrap();
         let source: Value = match serde_json::from_str(&input2) {
             Err(_) => Value::Null,
@@ -65,21 +63,10 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
         let mut index = 0;
         while source[index] != Value::Null {
             //let mut image = gtk::Image::new();
-            //if source[index]["icons"]!=Value::Null{
-            //    let input = remove_quotation(source[index]["icons"].to_string());
-            //    let future = get_pixbuf(&input);
-            //    let pixbuf = block_on(future);
-            //    let pixbuf = pixbuf.scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper).unwrap();
-            //    image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
-            //}else {
-            //    //let image  =gtk::gio::Icon::for_string("edit-find-symbolic").unwrap();
 
-            //    let pixbuf = gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
-            //    let pixbuf = pixbuf.scale_simple(100, 100, gtk::gdk_pixbuf::InterpType::Hyper).unwrap();
-            //    image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
-            //}
-            let input = remove_quotation(source[index]["icons"].to_string());
-            let future = fetch_path(&input);
+            let input = remove_quotation(source[index]["Pkgname"].to_string());
+            let input = &(url.clone()+&input+"/icon.png");
+            let future = fetch_path(input);
             let path = block_on(future).unwrap();
             tx.send((source[index].clone(), path)).expect("error");
             //thread::sleep(std::time::Duration::from_secs(1));
@@ -87,23 +74,16 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
         }
     });
 
-    //let loader = gtk::gdk_pixbuf::PixbufLoader::new();
-    //loader.write(image.as_bytes()).unwrap();
-    //loader.close().unwrap();
-    //let pixbuf = loader.pixbuf().unwrap();
-    //let icon = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
     rx.attach(None, move |source| {
         let (value, path) = source;
         let image = {
             if value["icons"] != Value::Null {
-                //let input = remove_quotation(value["icons"].to_string());
                 let pixbuf = get_pixbuf(path);
                 let pixbuf = pixbuf
                     .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
                     .unwrap();
                 gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
             } else {
-                //let image  =gtk::gio::Icon::for_string("edit-find-symbolic").unwrap();
 
                 let pixbuf = gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
                 let pixbuf = pixbuf
@@ -126,16 +106,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
 
         glib::Continue(true)
     });
-    //for name in names.into_iter() {
-    //    let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
-    //    let button = gtk::Button::new();
-    //
-    //    button.add(&name);
-    //    let label = Label::new(Some("sss"));
-    //    boxs.pack_start(&button, true, true, 0);
-    //    boxs.pack_start(&label, true, true, 0);
-    //    flowbox.add(&boxs);
-    //}
+
     notebook.append_page(&scrolled, Some(&lable));
 }
 fn get_pixbuf(bytes: Vec<u8>) -> gtk::gdk_pixbuf::Pixbuf {
@@ -198,7 +169,7 @@ async fn fetch_message(path: String) -> surf::Result<String> {
         Err(_) => Ok(String::new()),
     }
 }
-pub fn remove_quotation(input: String) -> String {
+fn remove_quotation(input: String) -> String {
     let length = input.len();
     (&input[1..length - 1]).to_string()
 }
