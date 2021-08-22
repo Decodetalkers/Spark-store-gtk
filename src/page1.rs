@@ -53,63 +53,72 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     scrolled.add(&flowbox);
     let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     thread::spawn(move || {
-        let future =
-            fetch_message(url.clone()+"applist.json");
+        let future = fetch_message(url.clone() + "applist.json");
         let input2 = block_on(future).unwrap();
         let source: Value = match serde_json::from_str(&input2) {
             Err(_) => Value::Null,
             Ok(output) => output,
         };
         let mut index = 0;
+        let mut threads = vec![];
         while source[index] != Value::Null {
             //let mut image = gtk::Image::new();
 
             let input = remove_quotation(source[index]["Pkgname"].to_string());
-            let input = url.clone()+&input+"/icon.png";
+            let input = url.clone() + &input + "/icon.png";
             let tx0 = tx.clone();
             let source0 = source[index].clone();
-            thread::spawn(move || {
+            let t = thread::spawn(move || {
                 let future = fetch_path(&input);
                 let path = block_on(future).unwrap();
-                tx0.send((source0, path)).expect("error");
+                tx0.send(Some((source0, path))).expect("error");
                 drop(tx0);
+                drop(input);
             });
+            threads.push(t);
             index += 1;
         }
+        for thread in threads {
+            thread.join().unwrap();
+        }
+        tx.send(None).expect("error");
         drop(tx);
     });
 
-    rx.attach(None, move |source| {
-        let (value, path) = source;
-        let image = {
-            if value["icons"] != Value::Null {
-                let pixbuf = get_pixbuf(path);
-                let pixbuf = pixbuf
-                    .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
-                    .unwrap();
-                gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
-            } else {
+    rx.attach(None, move |value| match value {
+        Some(source) => {
+            let (value, path) = source;
+            let image = {
+                if value["icons"] != Value::Null {
+                    let pixbuf = get_pixbuf(path);
+                    let pixbuf = pixbuf
+                        .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
+                        .unwrap();
+                    gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
+                } else {
+                    let pixbuf =
+                        gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
+                    let pixbuf = pixbuf
+                        .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
+                        .unwrap();
+                    gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
+                }
+            };
+            let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
+            let button = gtk::Button::new();
 
-                let pixbuf = gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
-                let pixbuf = pixbuf
-                    .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
-                    .unwrap();
-                gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
-            }
-        };
-        let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
-        let button = gtk::Button::new();
+            button.add(&image);
+            let label = Label::new(Some(&remove_quotation(value["Name"].to_string())));
+            label.set_max_width_chars(15);
+            label.set_line_wrap(true);
+            boxs.pack_start(&button, true, true, 0);
+            boxs.pack_start(&label, true, true, 0);
+            flowbox.add(&boxs);
+            flowbox.show_all();
 
-        button.add(&image);
-        let label = Label::new(Some(&remove_quotation(value["Name"].to_string())));
-        label.set_max_width_chars(15);
-        label.set_line_wrap(true);
-        boxs.pack_start(&button, true, true, 0);
-        boxs.pack_start(&label, true, true, 0);
-        flowbox.add(&boxs);
-        flowbox.show_all();
-
-        glib::Continue(true)
+            glib::Continue(true)
+        }
+        None => glib::Continue(false),
     });
 
     notebook.append_page(&scrolled, Some(&lable));

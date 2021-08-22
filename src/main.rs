@@ -43,14 +43,46 @@ fn build_ui(application: &gtk::Application) {
 
     let stackswitcher = StackSwitcher::new();
     stackswitcher.set_stack(Some(&stack));
+
+    let search_image = gtk::Image::from_icon_name(Some("edit-find-symbolic"), gtk::IconSize::Button);
+    let button_search = gtk::ToggleButton::new();
+    button_search.add(&search_image);
+    let search_bar = gtk::SearchBar::new();
+    let search_entry = gtk::SearchEntry::new();
+    //这样就让搜索出现了
+    //search_bar.set_search_mode(true);
+    search_bar.set_child(Some(&search_entry));
+    button_search.connect_toggled(glib::clone!(@weak search_bar => move |button|{
+        if button.is_active() {
+            search_bar.set_search_mode(true);
+        }else {
+            search_bar.set_search_mode(false);
+        }
+    }));
+    let boxs = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    boxs.pack_start(&search_bar,false,true,0);
+    boxs.pack_start(&stack,true,true,0);
+
+    let overlay = gtk::Overlay::new();
+    overlay.add(&boxs);
+
+    //button_search.conn
+    title.pack_end(&button_search);
     //title.add(&stackswitcher);
     //title.set_child(Some(&stackswitcher));
     // pack_start是左边
     // set_custom_title 设置标题控件
     // pack_end 设置右起
+    let back_image = gtk::Image::from_icon_name(Some("go-previous-symbolic"), gtk::IconSize::Button);
+    let button_back = gtk::Button::new();
+    button_back.add(&back_image);
+
+    title.pack_start(&button_back);
+
     title.set_custom_title(Some(&stackswitcher));
 
     //vbox.pack_start(&lable, true, true, 0);
-    window.add(&stack);
+    window.add(&overlay);
     window.show_all();
+    button_back.hide();
 }
