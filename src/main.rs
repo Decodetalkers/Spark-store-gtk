@@ -1,6 +1,18 @@
 //use gdtk::add_corner;
 use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
+use std::cell::RefCell;
 mod page1;
+struct Title {
+    title_label: gtk::Label,
+    stackswitcher: StackSwitcher,
+}
+
+// Download and search page
+// Title widget
+thread_local! {
+    static GLOBAL_OVERLAY: RefCell<Option<gtk::Box>> = RefCell::new(None);
+    static GLOBAL_TITLE: RefCell<Option<Title>> = RefCell::new(None);
+}
 fn main() {
     gio::resources_register_include!("compiled.gresource").unwrap();
     let application = gtk::Application::new(Some("come.test.add"), Default::default());
@@ -43,7 +55,10 @@ fn build_ui(application: &gtk::Application) {
 
     let stackswitcher = StackSwitcher::new();
     stackswitcher.set_stack(Some(&stack));
-
+    let title_label = gtk::Label::new(Some("Shop"));
+    let titel_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    titel_box.pack_start(&stackswitcher, true, true, 0);
+    titel_box.pack_start(&title_label, true, true, 0);
     let search_image = gtk::Image::from_icon_name(Some("edit-find-symbolic"), gtk::IconSize::Button);
     let button_search = gtk::ToggleButton::new();
     button_search.add(&search_image);
@@ -61,11 +76,11 @@ fn build_ui(application: &gtk::Application) {
     }));
     let boxs = gtk::Box::new(gtk::Orientation::Vertical, 0);
     boxs.pack_start(&search_bar,false,true,0);
-    boxs.pack_start(&stack,true,true,0);
+
 
     let overlay = gtk::Overlay::new();
-    overlay.add(&boxs);
-
+    overlay.add(&stack);
+    boxs.pack_start(&overlay,true,true,0);
     //button_search.conn
     title.pack_end(&button_search);
     //title.add(&stackswitcher);
@@ -79,10 +94,72 @@ fn build_ui(application: &gtk::Application) {
 
     title.pack_start(&button_back);
 
-    title.set_custom_title(Some(&stackswitcher));
+    title.set_custom_title(Some(&titel_box));
+    
 
     //vbox.pack_start(&lable, true, true, 0);
-    window.add(&overlay);
+    //布局完成
+    window.add(&boxs);
     window.show_all();
+    title_label.hide();
     button_back.hide();
+
+    let overlay_box = gtk::Box::new(gtk::Orientation::Vertical,0);
+    overlay_box.set_widget_name("overlaybox");
+    overlay_box.hide();
+    overlay.add_overlay(&overlay_box);
+    GLOBAL_TITLE.with(move |global|{
+        *global.borrow_mut() = Some(Title{
+            title_label,
+            stackswitcher,
+        })
+    });
+    GLOBAL_OVERLAY.with(move |global|{
+        *global.borrow_mut() = Some(overlay_box);
+    });
+    button_back.connect_clicked(|button|{
+        GLOBAL_OVERLAY.with(move |global|{
+            if let Some(ref overlay_box) = *global.borrow_mut(){
+                let children = overlay_box.children();
+                for child in children{
+                    overlay_box.remove(&child);
+                }
+                overlay_box.hide();
+                GLOBAL_TITLE.with(move |global|{
+                    if let Some(ref title) = *global.borrow_mut(){
+                        title.title_label.hide();
+                        title.stackswitcher.show();
+                    }
+                });
+            }
+        });
+        button.hide();
+    });
+    search_entry.connect_event(glib::clone!(@weak overlay,@weak button_back =>@default-return gtk::Inhibit(false), move |entry,event|{
+        if let Some(key) = event.keycode() {
+            if key == 36{
+                GLOBAL_OVERLAY.with(move |global|{
+                    if let Some(ref overlay_box) = *global.borrow_mut(){
+                        if overlay_box.children().is_empty(){
+                            let table = gtk::Label::new(Some("MM"));
+                            overlay_box.pack_start(&table,true,true,0);
+                            overlay_box.show();
+                            overlay.show_all();
+                            GLOBAL_TITLE.with(move |global|{
+                                if let Some(ref title) = *global.borrow_mut(){
+                                    title.title_label.set_text(&entry.text());
+                                    title.title_label.show();
+                                    title.stackswitcher.hide();
+                                }
+                            });
+                        }
+
+                    }
+                });
+                button_back.show();
+            }
+        };
+        gtk::Inhibit(false)
+    }));
+
 }

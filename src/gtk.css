@@ -30,3 +30,7 @@ label {
     color: #995999;
 }
 */
+
+#overlaybox {
+    background-color: rgba(255, 255, 255, 1);
+}
