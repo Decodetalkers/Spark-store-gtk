@@ -59,7 +59,8 @@ fn build_ui(application: &gtk::Application) {
     let titel_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     titel_box.pack_start(&stackswitcher, true, true, 0);
     titel_box.pack_start(&title_label, true, true, 0);
-    let search_image = gtk::Image::from_icon_name(Some("edit-find-symbolic"), gtk::IconSize::Button);
+    let search_image =
+        gtk::Image::from_icon_name(Some("edit-find-symbolic"), gtk::IconSize::Button);
     let button_search = gtk::ToggleButton::new();
     button_search.add(&search_image);
     let search_bar = gtk::SearchBar::new();
@@ -75,12 +76,11 @@ fn build_ui(application: &gtk::Application) {
         }
     }));
     let boxs = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    boxs.pack_start(&search_bar,false,true,0);
-
+    boxs.pack_start(&search_bar, false, true, 0);
 
     let overlay = gtk::Overlay::new();
     overlay.add(&stack);
-    boxs.pack_start(&overlay,true,true,0);
+    boxs.pack_start(&overlay, true, true, 0);
     //button_search.conn
     title.pack_end(&button_search);
     //title.add(&stackswitcher);
@@ -88,14 +88,14 @@ fn build_ui(application: &gtk::Application) {
     // pack_start是左边
     // set_custom_title 设置标题控件
     // pack_end 设置右起
-    let back_image = gtk::Image::from_icon_name(Some("go-previous-symbolic"), gtk::IconSize::Button);
+    let back_image =
+        gtk::Image::from_icon_name(Some("go-previous-symbolic"), gtk::IconSize::Button);
     let button_back = gtk::Button::new();
     button_back.add(&back_image);
 
     title.pack_start(&button_back);
 
     title.set_custom_title(Some(&titel_box));
-    
 
     //vbox.pack_start(&lable, true, true, 0);
     //布局完成
@@ -104,29 +104,29 @@ fn build_ui(application: &gtk::Application) {
     title_label.hide();
     button_back.hide();
 
-    let overlay_box = gtk::Box::new(gtk::Orientation::Vertical,0);
+    let overlay_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     overlay_box.set_widget_name("overlaybox");
     overlay_box.hide();
     overlay.add_overlay(&overlay_box);
-    GLOBAL_TITLE.with(move |global|{
-        *global.borrow_mut() = Some(Title{
+    GLOBAL_TITLE.with(move |global| {
+        *global.borrow_mut() = Some(Title {
             title_label,
             stackswitcher,
         })
     });
-    GLOBAL_OVERLAY.with(move |global|{
+    GLOBAL_OVERLAY.with(move |global| {
         *global.borrow_mut() = Some(overlay_box);
     });
-    button_back.connect_clicked(|button|{
-        GLOBAL_OVERLAY.with(move |global|{
-            if let Some(ref overlay_box) = *global.borrow_mut(){
+    button_back.connect_clicked(|button| {
+        GLOBAL_OVERLAY.with(move |global| {
+            if let Some(ref overlay_box) = *global.borrow_mut() {
                 let children = overlay_box.children();
-                for child in children{
+                for child in children {
                     overlay_box.remove(&child);
                 }
                 overlay_box.hide();
-                GLOBAL_TITLE.with(move |global|{
-                    if let Some(ref title) = *global.borrow_mut(){
+                GLOBAL_TITLE.with(move |global| {
+                    if let Some(ref title) = *global.borrow_mut() {
                         title.title_label.hide();
                         title.stackswitcher.show();
                     }
@@ -161,5 +161,4 @@ fn build_ui(application: &gtk::Application) {
         };
         gtk::Inhibit(false)
     }));
-
 }
