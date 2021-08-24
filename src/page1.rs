@@ -3,7 +3,7 @@ use gtk::{prelude::*, Label, Notebook};
 //use gtk::Image;
 use serde_json::Value;
 use std::thread;
-
+use crate::config::*;
 pub fn mainpage() -> Notebook {
     let notebook = Notebook::new();
     notebook.set_tab_pos(gtk::PositionType::Left);
@@ -115,6 +115,24 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
             boxs.pack_start(&label, true, true, 0);
             flowbox.add(&boxs);
             flowbox.show_all();
+
+            button.connect_clicked(|_|{
+                GLOBAL_OVERLAY.with(move |global|{
+                    if let Some(ref overlay_box) = *global.borrow_mut(){
+                        if overlay_box.children().is_empty(){
+                            let table = gtk::Label::new(Some("MM"));
+                            overlay_box.pack_start(&table,true,true,0);
+                            overlay_box.show_all();
+                            GLOBAL_TITLE.with(move |global|{
+                                if let Some(ref title) = *global.borrow_mut(){
+                                    title.switch_title("sss");
+                                }
+                            });
+                        }
+
+                    }
+                });
+            });
 
             glib::Continue(true)
         }

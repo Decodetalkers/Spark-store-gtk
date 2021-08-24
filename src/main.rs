@@ -1,18 +1,8 @@
 //use gdtk::add_corner;
 use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
-use std::cell::RefCell;
 mod page1;
-struct Title {
-    title_label: gtk::Label,
-    stackswitcher: StackSwitcher,
-}
-
-// Download and search page
-// Title widget
-thread_local! {
-    static GLOBAL_OVERLAY: RefCell<Option<gtk::Box>> = RefCell::new(None);
-    static GLOBAL_TITLE: RefCell<Option<Title>> = RefCell::new(None);
-}
+mod config;
+use config::*;
 fn main() {
     gio::resources_register_include!("compiled.gresource").unwrap();
     let application = gtk::Application::new(Some("come.test.add"), Default::default());
@@ -108,12 +98,7 @@ fn build_ui(application: &gtk::Application) {
     overlay_box.set_widget_name("overlaybox");
     overlay_box.hide();
     overlay.add_overlay(&overlay_box);
-    GLOBAL_TITLE.with(move |global| {
-        *global.borrow_mut() = Some(Title {
-            title_label,
-            stackswitcher,
-        })
-    });
+
     GLOBAL_OVERLAY.with(move |global| {
         *global.borrow_mut() = Some(overlay_box);
     });
@@ -127,15 +112,21 @@ fn build_ui(application: &gtk::Application) {
                 overlay_box.hide();
                 GLOBAL_TITLE.with(move |global| {
                     if let Some(ref title) = *global.borrow_mut() {
-                        title.title_label.hide();
-                        title.stackswitcher.show();
+                        title.switch_stack();
                     }
                 });
             }
         });
         button.hide();
     });
-    search_entry.connect_event(glib::clone!(@weak overlay,@weak button_back =>@default-return gtk::Inhibit(false), move |entry,event|{
+    GLOBAL_TITLE.with(move |global| {
+        *global.borrow_mut() = Some(Title {
+            title_label,
+            stackswitcher,
+            button_back,
+        })
+    });
+    search_entry.connect_event(|entry,event|{
         if let Some(key) = event.keycode() {
             if key == 36{
                 GLOBAL_OVERLAY.with(move |global|{
@@ -143,22 +134,18 @@ fn build_ui(application: &gtk::Application) {
                         if overlay_box.children().is_empty(){
                             let table = gtk::Label::new(Some("MM"));
                             overlay_box.pack_start(&table,true,true,0);
-                            overlay_box.show();
-                            overlay.show_all();
+                            overlay_box.show_all();
                             GLOBAL_TITLE.with(move |global|{
                                 if let Some(ref title) = *global.borrow_mut(){
-                                    title.title_label.set_text(&entry.text());
-                                    title.title_label.show();
-                                    title.stackswitcher.hide();
+                                    title.switch_title(&entry.text());
                                 }
                             });
                         }
 
                     }
                 });
-                button_back.show();
             }
         };
         gtk::Inhibit(false)
-    }));
+    });
 }
