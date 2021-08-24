@@ -88,22 +88,21 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     rx.attach(None, move |value| match value {
         Some(source) => {
             let (value, path) = source;
-            let image = {
+            let pixbuf = {
                 if value["icons"] != Value::Null {
                     let pixbuf = get_pixbuf(path);
-                    let pixbuf = pixbuf
+                    pixbuf
                         .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
-                        .unwrap();
-                    gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
+                        .unwrap()
                 } else {
                     let pixbuf =
-                        gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap();
-                    let pixbuf = pixbuf
+                        gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/akalin.png").unwrap();
+                    pixbuf
                         .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
-                        .unwrap();
-                    gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button)
+                        .unwrap()
                 }
             };
+            let image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
             let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
             let button = gtk::Button::new();
 
@@ -116,16 +115,28 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
             flowbox.add(&boxs);
             flowbox.show_all();
 
-            button.connect_clicked(|_|{
+            button.connect_clicked(move |_|{
+                let the_title = remove_quotation(value["Name"].to_string());
+                let more = remove_quotation(value["More"].to_string()).replace("\\n", "\n");
+                let intorduction = gtk::Label::new(Some(&more));
+                intorduction.set_line_wrap(true);
+                let image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
+                let overlay_inside_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+                overlay_inside_box.set_valign(gtk::Align::Start);
+                overlay_inside_box.pack_start(&image, true, false, 0);
+                overlay_inside_box.pack_start(&intorduction, true, false, 0);
+                let scrolled = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+                scrolled.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
+                scrolled.add(&overlay_inside_box);
+
                 GLOBAL_OVERLAY.with(move |global|{
                     if let Some(ref overlay_box) = *global.borrow_mut(){
                         if overlay_box.children().is_empty(){
-                            let table = gtk::Label::new(Some("MM"));
-                            overlay_box.pack_start(&table,true,true,0);
+                            overlay_box.pack_start(&scrolled,true,true,0);
                             overlay_box.show_all();
                             GLOBAL_TITLE.with(move |global|{
                                 if let Some(ref title) = *global.borrow_mut(){
-                                    title.switch_title("sss");
+                                    title.switch_title(&the_title);
                                 }
                             });
                         }
@@ -150,7 +161,7 @@ fn get_pixbuf(bytes: Vec<u8>) -> gtk::gdk_pixbuf::Pixbuf {
         gtk::gio::Cancellable,
     >(&stream, None)
     {
-        Err(_) => gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/youxie.jpeg").unwrap(),
+        Err(_) => gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/akalin.png").unwrap(),
         Ok(output) => output,
     };
     output

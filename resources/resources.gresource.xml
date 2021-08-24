@@ -2,5 +2,6 @@
 <gresources>
     <gresource prefix="/ygo">
         <file>youxie.jpeg</file>
+        <file>akalin.png</file>
     </gresource>
 </gresources>
