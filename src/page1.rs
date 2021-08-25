@@ -1,4 +1,3 @@
-use futures::executor::block_on;
 use gtk::{prelude::*, Label, Notebook};
 //use gtk::Image;
 use serde_json::Value;
@@ -34,9 +33,6 @@ pub fn mainpage() -> Notebook {
         "https://d.store.deepinos.org.cn//store/tools/",
         "https://d.store.deepinos.org.cn//store/others/",
     ];
-    //let future = fetch_path("https://d.store.deepinos.org.cn//store/chat/applist.json".to_string());
-    //let test: String = block_on(future).unwrap();
-    //println!("{}",test);
     for (name, url) in names.into_iter().zip(urls) {
         create_tab(&notebook, name, url.to_string());
     }
@@ -53,8 +49,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     scrolled.add(&flowbox);
     let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     thread::spawn(move || {
-        let future = fetch_message(url.clone() + "applist.json");
-        let input2 = block_on(future).unwrap();
+        let input2 = fetch_message(url.clone() + "applist.json");
         let source: Value = match serde_json::from_str(&input2) {
             Err(_) => Value::Null,
             Ok(output) => output,
@@ -69,8 +64,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
             let tx0 = tx.clone();
             let source0 = source[index].clone();
             let t = thread::spawn(move || {
-                let future = fetch_path(&input);
-                let path = block_on(future).unwrap();
+                let path = fetch_pic(&input);
                 tx0.send(Some((source0, path))).expect("error");
                 drop(tx0);
                 drop(input);
@@ -151,68 +145,4 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     });
 
     notebook.append_page(&scrolled, Some(&lable));
-}
-fn get_pixbuf(bytes: Vec<u8>) -> gtk::gdk_pixbuf::Pixbuf {
-    //let bytes = fetch_path(path).await.unwrap();
-    let bytes = glib::Bytes::from(&bytes.to_vec());
-    let stream = gtk::gio::MemoryInputStream::from_bytes(&bytes);
-    let output: gtk::gdk_pixbuf::Pixbuf = match gtk::gdk_pixbuf::Pixbuf::from_stream::<
-        gtk::gio::MemoryInputStream,
-        gtk::gio::Cancellable,
-    >(&stream, None)
-    {
-        Err(_) => gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/akalin.png").unwrap(),
-        Ok(output) => output,
-    };
-    output
-}
-async fn fetch_path(path: &str) -> surf::Result<Vec<u8>> {
-    let mut back_string = vec![];
-    let url = surf::http::Url::parse(path);
-    match url {
-        Ok(_) => {
-            match surf::get(&path).await {
-                Ok(mut response) => {
-                    match response.body_bytes().await {
-                        Ok(text) => back_string = text.to_vec(),
-                        Err(_) => {
-                            println!("Read response text Error!")
-                        }
-                    };
-                }
-                Err(_) => {
-                    println!("reqwest get Error!")
-                }
-            }
-            Ok(back_string)
-        }
-        Err(_) => Ok(vec![]),
-    }
-}
-async fn fetch_message(path: String) -> surf::Result<String> {
-    let mut back_string = String::new();
-    let url = surf::http::Url::parse(&path);
-    match url {
-        Ok(_) => {
-            match surf::get(&path).await {
-                Ok(mut response) => {
-                    match response.body_string().await {
-                        Ok(text) => back_string = text,
-                        Err(_) => {
-                            println!("Read response text Error!")
-                        }
-                    };
-                }
-                Err(_) => {
-                    println!("reqwest get Error!")
-                }
-            }
-            Ok(back_string)
-        }
-        Err(_) => Ok(String::new()),
-    }
-}
-fn remove_quotation(input: String) -> String {
-    let length = input.len();
-    (&input[1..length - 1]).to_string()
 }

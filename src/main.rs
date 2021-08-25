@@ -1,5 +1,7 @@
 //use gdtk::add_corner;
 use gtk::{prelude::*, HeaderBar, Stack, StackSwitcher};
+use std::thread;
+use serde_json::Value;
 mod page1;
 mod config;
 use config::*;
@@ -131,16 +133,18 @@ fn build_ui(application: &gtk::Application) {
             if key == 36{
                 GLOBAL_OVERLAY.with(move |global|{
                     if let Some(ref overlay_box) = *global.borrow_mut(){
-                        if overlay_box.children().is_empty(){
-                            let table = gtk::Label::new(Some("MM"));
-                            overlay_box.pack_start(&table,true,true,0);
-                            overlay_box.show_all();
-                            GLOBAL_TITLE.with(move |global|{
-                                if let Some(ref title) = *global.borrow_mut(){
-                                    title.switch_title(&entry.text());
-                                }
-                            });
+                        let children = overlay_box.children();
+                        for child in children {
+                            overlay_box.remove(&child);
                         }
+                        let table = search_widget(entry.text().to_string());
+                        overlay_box.pack_start(&table,true,true,0);
+                        overlay_box.show_all();
+                        GLOBAL_TITLE.with(move |global|{
+                            if let Some(ref title) = *global.borrow_mut(){
+                                title.switch_title(&entry.text());
+                            }
+                        });
 
                     }
                 });
@@ -148,4 +152,125 @@ fn build_ui(application: &gtk::Application) {
         };
         gtk::Inhibit(false)
     });
+}
+fn search_widget(tag_name:String) -> gtk::Widget {
+    let urls: Vec<&str> = vec![
+        "https://d.store.deepinos.org.cn//store/network/",
+        "https://d.store.deepinos.org.cn//store/chat/",
+        "https://d.store.deepinos.org.cn//store/music/",
+        "https://d.store.deepinos.org.cn//store/video/",
+        "https://d.store.deepinos.org.cn//store/image_graphics/",
+        "https://d.store.deepinos.org.cn//store/games/",
+        "https://d.store.deepinos.org.cn//store/office/",
+        "https://d.store.deepinos.org.cn//store/reading/",
+        "https://d.store.deepinos.org.cn//store/development/",
+        "https://d.store.deepinos.org.cn//store/tools/",
+        "https://d.store.deepinos.org.cn//store/others/",
+    ];
+    let flowbox = gtk::FlowBox::new();
+    flowbox.set_valign(gtk::Align::Start);
+    flowbox.set_max_children_per_line(30);
+    flowbox.set_selection_mode(gtk::SelectionMode::None);
+    let scrolled = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    scrolled.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
+    let boxs = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    boxs.set_valign(gtk::Align::Start);
+    boxs.pack_end(&flowbox, true, true, 0);
+    scrolled.add(&boxs);
+    let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+    thread::spawn(move || {
+        for url in urls.into_iter() {
+            let input = fetch_message(url.to_string()+"applist.json");
+            let source: Value = match serde_json::from_str(&input) {
+                Err(_) => Value::Null,
+                Ok(output) => output,
+            };
+            let mut index = 0;
+            while source[index] != Value::Null {
+                let name =remove_quotation(source[index]["Name"].to_string());
+                if name.contains(&tag_name){
+                    let input = remove_quotation(source[index]["Pkgname"].to_string());
+                    let input = url.to_string() + &input + "/icon.png";
+                    let path = fetch_pic(&input);
+                    let source0 = source[index].clone();
+                    tx.send(Some((source0, path))).expect("error");
+                }
+                index+=1;
+            }
+        }
+        tx.send(None).expect("error");
+    });
+    rx.attach(None, move |value| match value {
+        Some(source) => {
+            let (value, path) = source;
+            let pixbuf = {
+                if value["icons"] != Value::Null {
+                    let pixbuf = get_pixbuf(path);
+                    pixbuf
+                        .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
+                        .unwrap()
+                } else {
+                    let pixbuf =
+                        gtk::gdk_pixbuf::Pixbuf::from_resource("/ygo/akalin.png").unwrap();
+                    pixbuf
+                        .scale_simple(160, 160, gtk::gdk_pixbuf::InterpType::Hyper)
+                        .unwrap()
+                }
+            };
+            let image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
+            let boxs = gtk::Box::new(gtk::Orientation::Vertical, 1);
+            let button = gtk::Button::new();
+
+            button.add(&image);
+            let label = gtk::Label::new(Some(&remove_quotation(value["Name"].to_string())));
+            label.set_max_width_chars(15);
+            label.set_line_wrap(true);
+            boxs.pack_start(&button, true, true, 0);
+            boxs.pack_start(&label, true, true, 0);
+            flowbox.add(&boxs);
+            flowbox.show_all();
+
+            button.connect_clicked(move |_|{
+                let the_title = remove_quotation(value["Name"].to_string());
+                let more = remove_quotation(value["More"].to_string()).replace("\\n", "\n");
+                let intorduction = gtk::Label::new(Some(&more));
+                intorduction.set_line_wrap(true);
+                let image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
+                let overlay_inside_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+                overlay_inside_box.set_valign(gtk::Align::Start);
+                overlay_inside_box.pack_start(&image, true, false, 0);
+                overlay_inside_box.pack_start(&intorduction, true, false, 0);
+                let scrolled = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+                scrolled.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
+                scrolled.add(&overlay_inside_box);
+
+                GLOBAL_OVERLAY.with(move |global|{
+                    if let Some(ref overlay_box) = *global.borrow_mut(){
+                        let children = overlay_box.children();
+                        for child in children {
+                            overlay_box.remove(&child);
+                        }
+                        overlay_box.pack_start(&scrolled,true,true,0);
+                        overlay_box.show_all();
+                        GLOBAL_TITLE.with(move |global|{
+                            if let Some(ref title) = *global.borrow_mut(){
+                                title.switch_title(&the_title);
+                            }
+                        });
+
+                    }
+                });
+            });
+
+            glib::Continue(true)
+        }
+        None => {
+            let underline_label = gtk::Label::new(Some("没有更多了"));
+            boxs.pack_start(&underline_label, true, false,0);
+            boxs.show_all();
+            glib::Continue(false)
+        },
+    });
+
+    scrolled.upcast()
 }
