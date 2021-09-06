@@ -5,7 +5,7 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
-members = ["gdtk"]
+members = ["gdtk","gtkdownloadbar"]
 
 [dependencies]
 gtk = "0.14.0"
@@ -16,6 +16,7 @@ serde_json = "1.0"
 surf = "2.2.0"
 futures = "0.3"
 gdtk = {path = "./gdtk"}
+gtkdownloadbar = {path = "./gtkdownloadbar"}
 # crossbeam = "0.8"
 
 [build-dependencies]
