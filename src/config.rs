@@ -12,6 +12,7 @@ pub struct Title {
 // Title widget
 thread_local! {
     pub static GLOBAL_OVERLAY: RefCell<Option<gtk::Box>> = RefCell::new(None);
+    pub static GLOBAL_DOWNLOAD: RefCell<Option<gtk::Box>> = RefCell::new(None);
     pub static GLOBAL_TITLE: RefCell<Option<Title>> = RefCell::new(None);
 }
 impl Title {
@@ -22,6 +23,7 @@ impl Title {
         self.button_back.show();
     }
     pub fn switch_stack(&self){
+        self.button_back.hide();
         self.title_label.hide();
         self.stackswitcher.show();
     }

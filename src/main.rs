@@ -42,8 +42,12 @@ fn build_ui(application: &gtk::Application) {
     stack.set_transition_duration(1000);
     let page1 = page1::mainpage();
     stack.add_titled(&page1, "lable", "label");
-    let lable2 = gtk::Label::new(Some("BB"));
+    let lable2 = gtk::Box::new(gtk::Orientation::Vertical, 0);
     stack.add_titled(&lable2, "lable2", "label2");
+    lable2.set_valign(gtk::Align::Start);
+    GLOBAL_DOWNLOAD.with(move|global|{
+        *global.borrow_mut() = Some(lable2);
+    });
 
     let stackswitcher = StackSwitcher::new();
     stackswitcher.set_stack(Some(&stack));

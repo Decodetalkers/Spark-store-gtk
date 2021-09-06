@@ -48,6 +48,8 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
     scrolled.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
     scrolled.add(&flowbox);
     let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+
+    let url2 = url.clone();
     thread::spawn(move || {
         let input2 = fetch_message(url.clone() + "applist.json");
         let source: Value = match serde_json::from_str(&input2) {
@@ -79,8 +81,10 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
         drop(tx);
     });
 
+
     rx.attach(None, move |value| match value {
         Some(source) => {
+            let url2 = url2.clone();
             let (value, path) = source;
             let pixbuf = {
                 if value["icons"] != Value::Null {
@@ -108,21 +112,59 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
             boxs.pack_start(&label, true, true, 0);
             flowbox.add(&boxs);
             flowbox.show_all();
-
+            
             button.connect_clicked(move |_|{
+                let url2 = url2.clone();
+                let value2 = value.clone();
                 let the_title = remove_quotation(value["Name"].to_string());
                 let more = remove_quotation(value["More"].to_string()).replace("\\n", "\n");
                 let intorduction = gtk::Label::new(Some(&more));
                 intorduction.set_line_wrap(true);
                 let image = gtk::Image::from_gicon(&pixbuf, gtk::IconSize::Button);
                 let overlay_inside_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+                let overlay_left_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+                let download_button = gtk::Button::new();
+                download_button.set_label("下载");
+
+                overlay_left_box.pack_start(&image, true, false, 0);
+                overlay_left_box.pack_start(&download_button, true, false, 0);
+                
                 overlay_inside_box.set_valign(gtk::Align::Start);
-                overlay_inside_box.pack_start(&image, true, false, 0);
+                overlay_inside_box.pack_start(&overlay_left_box, true, false, 0);
                 overlay_inside_box.pack_start(&intorduction, true, false, 0);
                 let scrolled = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
                 scrolled.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
                 scrolled.add(&overlay_inside_box);
 
+                download_button.connect_clicked(move |_button|{
+                    let url2 = url2.clone();
+                    let value2 = value2.clone();
+                    GLOBAL_OVERLAY.with(move |global|{
+                        if let Some(ref overlay_box) = *global.borrow_mut(){
+                            for child in overlay_box.children(){
+                                overlay_box.remove(&child);
+                            }
+                            overlay_box.hide();
+                        }
+                    });
+                    GLOBAL_TITLE.with(move |global|{
+                        if let Some(ref title) = *global.borrow_mut(){
+                            title.switch_stack();
+                        }
+                    });
+                    GLOBAL_DOWNLOAD.with(move |global|{
+                        let url2 = url2.clone();
+                        if let Some(ref download)  = *global.borrow_mut(){
+                            let start = gtkdownloadbar::DownloadProgressBar::new(
+                                format!("{}{}/{}",url2,remove_quotation(value2.clone()["Pkgname"].to_string()),remove_quotation(value2["Filename"].to_string())),
+                            ).unwrap();
+
+                            println!("{}",format!("{}{}/{}",url2,remove_quotation(value2.clone()["Pkgname"].to_string()),remove_quotation(value2["Filename"].to_string())));
+                            start.add_progress_bar_to(download);
+                            download.show_all();
+                        }
+                    });
+                });
                 GLOBAL_OVERLAY.with(move |global|{
                     if let Some(ref overlay_box) = *global.borrow_mut(){
                         if overlay_box.children().is_empty(){
