@@ -114,6 +114,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
             flowbox.show_all();
             
             button.connect_clicked(move |_|{
+                let pixbuf2 = pixbuf.clone();
                 let url2 = url2.clone();
                 let value2 = value.clone();
                 let the_title = remove_quotation(value["Name"].to_string());
@@ -137,6 +138,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
                 scrolled.add(&overlay_inside_box);
 
                 download_button.connect_clicked(move |_button|{
+                    let pixbuf2 = pixbuf2.clone();
                     let url2 = url2.clone();
                     let value2 = value2.clone();
                     GLOBAL_OVERLAY.with(move |global|{
@@ -157,6 +159,7 @@ fn create_tab(notebook: &Notebook, title: &str, url: String) {
                         if let Some(ref download)  = *global.borrow_mut(){
                             let start = gtkdownloadbar::DownloadProgressBar::new(
                                 format!("{}{}/{}",url2,remove_quotation(value2.clone()["Pkgname"].to_string()),remove_quotation(value2["Filename"].to_string())),
+                                Some(pixbuf2)
                             ).unwrap();
 
                             println!("{}",format!("{}{}/{}",url2,remove_quotation(value2.clone()["Pkgname"].to_string()),remove_quotation(value2["Filename"].to_string())));
