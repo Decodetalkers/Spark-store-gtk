@@ -1,0 +1,6 @@
+[submodule "gtk-download-bar"]
+	path = gtkdownloadbar
+	url = https://github.com/chen244/gtk-download-bar
+[submodule "my-gtk-libs"]
+	path = gdtk
+	url = https://github.com/chen244/my-gtk-libs.git
