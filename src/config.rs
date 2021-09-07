@@ -1,7 +1,7 @@
-use std::cell::RefCell;
-use gtk::StackSwitcher;
-use gtk::prelude::*;
 use futures::executor::block_on;
+use gtk::prelude::*;
+use gtk::StackSwitcher;
+use std::cell::RefCell;
 pub struct Title {
     pub title_label: gtk::Label,
     pub stackswitcher: StackSwitcher,
@@ -16,13 +16,13 @@ thread_local! {
     pub static GLOBAL_TITLE: RefCell<Option<Title>> = RefCell::new(None);
 }
 impl Title {
-    pub fn switch_title(&self,title: &str){
+    pub fn switch_title(&self, title: &str) {
         self.title_label.set_text(title);
         self.title_label.show();
         self.stackswitcher.hide();
         self.button_back.show();
     }
-    pub fn switch_stack(&self){
+    pub fn switch_stack(&self) {
         self.button_back.hide();
         self.title_label.hide();
         self.stackswitcher.show();
